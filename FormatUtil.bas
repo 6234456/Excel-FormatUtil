@@ -3,7 +3,7 @@
 '                                          to implement the format uniformly
 '@author                                   Qiou Yang
 '@lastUpdate                               07.09.2018
-'@TODO                                   ´
+'@TODO                                     add getter and setter
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 ' declaration compulsory
@@ -17,6 +17,8 @@ Dim pRowHeightCaption As Integer
 Dim pRowHeightFooting As Integer
 Dim pRowHeight As Integer
 Dim pBlankRowsUnterCaption As Integer
+Dim pBgDark As Long
+Dim pBgLight As Long
 
 Private Sub Class_Initialize()
     pFont = "BahnSchrift"
@@ -27,9 +29,12 @@ Private Sub Class_Initialize()
     pRowHeightFooting = 35
     pRowHeight = 24
     pBlankRowsUnterCaption = 2
+    
+    pBgDark = 11892015
+    pBgLight = 16247773
 End Sub
 
-Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long = 11892015, Optional bgLight As Long = 16247773)
+Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long, Optional bgLight As Long)
     
     With Application
         .ScreenUpdating = False
@@ -37,6 +42,14 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
     
     If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
         Set rng = Application.Intersect(ActiveSheet.UsedRange, Selection)
+    End If
+    
+    If IsMissing(bgDark) Or bgDark = 0 Then
+        bgDark = pBgDark
+    End If
+    
+    If IsMissing(bgLight) Or bgLight = 0 Then
+        bgLight = pBgLight
     End If
     
     Dim bgTransparent As Long
@@ -58,6 +71,9 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
     
         .ClearFormats
         ActiveWindow.DisplayGridlines = False
+        
+        ' borders internal vertical
+        .Borders(xlInsideVertical).Weight = xlThin
         
         ' Alignment
         .HorizontalAlignment = xlLeft
@@ -81,6 +97,7 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
                 
                 .RowHeight = pRowHeightCaption
                 
+                .Borders(xlInsideVertical).Color = fontColorWhite
                 .Borders(xlEdgeBottom).Weight = xlThin
             End With
             
@@ -113,12 +130,13 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
                 With .Borders(xlEdgeTop)
                     .LineStyle = xlDouble
                     .Weight = xlThick
-                    .ThemeColor = 1
+                    .Color = fontColorWhite
                 End With
+                
+                .Borders(xlInsideVertical).Color = fontColorWhite
             End With
         End If
         
-        .Borders(xlInsideVertical).Weight = xlThin
 
         .Borders(xlEdgeTop).Weight = xlMedium
         .Borders(xlEdgeRight).Weight = xlMedium
@@ -136,7 +154,7 @@ End Function
 
 ' caption occupies the first two rows above the table
 ' @param category : up-left   can be for example  Recherche / Arbeitspapier / Neuberechnung / Interview
-Function addCaption(Optional ByRef rng As Range, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang", Optional bgColor As Long = 11892015)
+Function addCaption(Optional ByRef rng As Range, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang", Optional bgColor As Long)
     
     With Application
         .ScreenUpdating = False
@@ -144,6 +162,10 @@ Function addCaption(Optional ByRef rng As Range, Optional ByVal category As Stri
     
      If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
         Set rng = Application.Intersect(ActiveSheet.UsedRange, Selection)
+    End If
+    
+     If IsMissing(bgColor) Or bgColor = 0 Then
+        bgColor = pBgDark
     End If
     
     Dim fontColorWhite As Long
@@ -191,7 +213,7 @@ Function addCaption(Optional ByRef rng As Range, Optional ByVal category As Stri
     
 End Function
 
-Function formatWithCaption(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long = 11892015, Optional bgLight As Long = 16247773, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang")
+Function formatWithCaption(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long, Optional bgLight As Long, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang")
     addCaption rng, category, theme, index, author, bgDark
     formatRng rng, hasHeading, hasFooting, bgDark, bgLight
 End Function
@@ -344,6 +366,34 @@ Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer,
     With Application
         .Calculation = xlCalculationAutomatic
         .ScreenUpdating = True
+    End With
+
+End Function
+
+Function addTextBoxComment(Optional content As String, Optional ByRef sht As Worksheet)
+    
+    If IsMissing(sht) Or TypeName(sht) = "Nothing" Then
+        Set sht = ActiveSheet
+    End If
+    
+    If IsMissing(content) Or content = "" Then
+        content = "Prüfungshandlung : " & Chr(9) & "Durchlesen / Neuberechnung" & Chr(13) & "Prüfungsfeststellung : " & Chr(9) & "Keine Feststellung." & String(3, Chr(13)) & "Qiou Yang / " & Format(Now, "dd.mm.yyyy")
+    End If
+    
+    With sht
+        With .Shapes.AddTextbox(msoTextOrientationHorizontal, 50, 50, 480, 180)
+            With .TextFrame2.TextRange.Characters
+                .Text = content
+                With .Font
+                    .Size = pFontSizePlusPlus
+                    .Name = pFont
+                End With
+            End With
+            
+            .Line.ForeColor.ObjectThemeColor = msoThemeColorAccent5
+            .ShapeStyle = msoShapeStylePreset6
+            
+        End With
     End With
 
 End Function

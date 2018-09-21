@@ -2,7 +2,8 @@
 '@desc                                     Util Class FormatUtil
 '                                          to implement the format uniformly
 '@author                                   Qiou Yang
-'@lastUpdate                               07.09.2018
+'@lastUpdate                               21.09.2018
+'                                          add default theme and several number formats
 '@TODO                                     add getter and setter
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -20,6 +21,14 @@ Dim pBlankRowsUnterCaption As Integer
 Dim pBgDark As Long
 Dim pBgLight As Long
 
+Public Enum FormatTheme
+    fmtBlue = 0
+    fmtLightGreen = 1
+    fmtOrange = 2
+    fmtSkyBlue = 3
+    fmtBlackWhite = 4
+End Enum
+
 Private Sub Class_Initialize()
     pFont = "BahnSchrift"
     pFontSize = 10
@@ -34,14 +43,37 @@ Private Sub Class_Initialize()
     pBgLight = 16247773
 End Sub
 
-Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long, Optional bgLight As Long)
+Function setTheme(Optional ByVal theme As Integer = FormatTheme.fmtLightGreen)
+    If theme = FormatTheme.fmtLightGreen Then
+        pBgDark = 9359529
+        pBgLight = 14348258
+    ElseIf theme = FormatTheme.fmtBlue Then
+        pBgDark = 11892015
+        pBgLight = 16247773
+    ElseIf theme = FormatTheme.fmtOrange Then
+        pBgDark = 3243501
+        pBgLight = 14083324
+    ElseIf theme = FormatTheme.fmtSkyBlue Then
+        pBgDark = 15773696
+        pBgLight = 16247773
+    ElseIf theme = FormatTheme.fmtBlackWhite Then
+        pBgDark = 7434613
+        pBgLight = 14277081
+    Else
+        Err.Raise 9970, , "ParameterException: Unknown Theme: " & theme
+    End If
+
+End Function
+
+
+Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional keepOldFormat As Boolean = False, Optional bgDark As Long, Optional bgLight As Long) As Range
     
     With Application
         .ScreenUpdating = False
     End With
     
     If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
-        Set rng = Application.Intersect(ActiveSheet.UsedRange, Selection)
+        Set rng = Application.intersect(ActiveSheet.UsedRange, Selection)
     End If
     
     If IsMissing(bgDark) Or bgDark = 0 Then
@@ -67,9 +99,11 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
     With rng
 
         contentStartRow = 1
-        contentEndRow = .Rows.Count
-    
-        .ClearFormats
+        contentEndRow = .Rows.count
+        
+        If Not keepOldFormat Then
+            .ClearFormats
+        End If
         ActiveWindow.DisplayGridlines = False
         
         ' borders internal vertical
@@ -85,17 +119,18 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
         .Font.Color = fontColorBlack
         
         ' Row Height
-        .RowHeight = pRowHeight
+        .rowHeight = pRowHeight
         
         If hasHeading Then
             With .Rows(1)
                 With .Font
                     .Size = pFontSizePlus
                     .Color = fontColorWhite
+                    .Bold = True
                 End With
                 .Interior.Color = bgDark
                 
-                .RowHeight = pRowHeightCaption
+                .rowHeight = pRowHeightCaption
                 
                 .Borders(xlInsideVertical).Color = fontColorWhite
                 .Borders(xlEdgeBottom).Weight = xlThin
@@ -105,14 +140,14 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
         End If
         
         If hasFooting Then
-            With .Rows(.Rows.Count)
+            With .Rows(.Rows.count)
                 With .Font
                     .Size = pFontSizePlus
                     .Color = fontColorWhite
                 End With
                 .Interior.Color = bgDark
                 
-                .RowHeight = pRowHeightFooting
+                .rowHeight = pRowHeightFooting
             End With
             
             contentEndRow = contentEndRow - 1
@@ -126,7 +161,7 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
         
         
         If hasFooting Then
-            With .Rows(.Rows.Count)
+            With .Rows(.Rows.count)
                 With .Borders(xlEdgeTop)
                     .LineStyle = xlDouble
                     .Weight = xlThick
@@ -145,23 +180,25 @@ Function formatRng(Optional ByRef rng As Range, Optional hasHeading As Boolean =
     End With
     
     
-     With Application
+    With Application
         .ScreenUpdating = True
     End With
+    
+    Set formatRng = rng
     
 End Function
 
 
 ' caption occupies the first two rows above the table
 ' @param category : up-left   can be for example  Recherche / Arbeitspapier / Neuberechnung / Interview
-Function addCaption(Optional ByRef rng As Range, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang", Optional bgColor As Long)
+Function addCaption(Optional ByRef rng As Range, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang", Optional bgColor As Long) As Range
     
     With Application
         .ScreenUpdating = False
     End With
     
      If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
-        Set rng = Application.Intersect(ActiveSheet.UsedRange, Selection)
+        Set rng = Application.intersect(ActiveSheet.UsedRange, Selection)
     End If
     
      If IsMissing(bgColor) Or bgColor = 0 Then
@@ -171,37 +208,37 @@ Function addCaption(Optional ByRef rng As Range, Optional ByVal category As Stri
     Dim fontColorWhite As Long
     fontColorWhite = 16777215
 
-    rng.Worksheet.Cells(1, rng.Cells(1, 1).Column).Resize(pBlankRowsUnterCaption + 2, rng.Columns.Count).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    rng.Worksheet.Cells(1, rng.Cells(1, 1).Column).Resize(pBlankRowsUnterCaption + 2, rng.Columns.count).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     
-    With rng.Worksheet.Cells(1, rng.Cells(1, 1).Column).Resize(2, rng.Columns.Count)
+    With rng.Worksheet.Cells(1, rng.Cells(1, 1).Column).Resize(2, rng.Columns.count)
         .Interior.Color = bgColor
         .Font.Name = pFont
         .Font.Size = pFontSizePlus
         .Font.Color = fontColorWhite
         
-        .RowHeight = pRowHeightFooting
+        .rowHeight = pRowHeightFooting
         
         .HorizontalAlignment = xlLeft
         .VerticalAlignment = xlCenter
         
         
         With .Cells(1, 1)
-            .Value = category
+            .value = category
         End With
         
         With .Cells(2, 1)
-           .Value = theme
+           .value = theme
            .Font.Bold = True
            .Font.Size = pFontSizePlusPlus
         End With
         
-        With .Cells(1, rng.Columns.Count)
-           .Value = index
+        With .Cells(1, rng.Columns.count)
+           .value = index
            .HorizontalAlignment = xlRight
         End With
         
-         With .Cells(2, rng.Columns.Count)
-           .Value = author & "/" & Format(Now, "dd.mm.yyyy")
+         With .Cells(2, rng.Columns.count)
+           .value = author & "/" & format(Now, "dd.mm.yyyy")
            .HorizontalAlignment = xlRight
         End With
         
@@ -211,11 +248,15 @@ Function addCaption(Optional ByRef rng As Range, Optional ByVal category As Stri
         .ScreenUpdating = True
     End With
     
+    Set addCaption = rng
+    
 End Function
 
-Function formatWithCaption(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional bgDark As Long, Optional bgLight As Long, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang")
+Function formatWithCaption(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional keepOldFormat As Boolean = False, Optional bgDark As Long, Optional bgLight As Long, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang") As Range
     addCaption rng, category, theme, index, author, bgDark
-    formatRng rng, hasHeading, hasFooting, bgDark, bgLight
+    formatRng rng, hasHeading, hasFooting, keepOldFormat, bgDark, bgLight
+    
+    Set formatWithCaption = rng
 End Function
 
 
@@ -229,7 +270,7 @@ Function mergeCells(Optional ByRef rng As Range, Optional ByVal orient As String
     End With
     
      If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
-        Set rng = Application.Intersect(ActiveSheet.UsedRange, Selection)
+        Set rng = Application.intersect(ActiveSheet.UsedRange, Selection)
     End If
     
     Dim i, tmpVal
@@ -240,16 +281,16 @@ Function mergeCells(Optional ByRef rng As Range, Optional ByVal orient As String
     Dim ende As Range
     
     
-    If rng.Cells.Count > 1 Then
+    If rng.Cells.count > 1 Then
 
-        For i = rng.Cells.Count To 1 Step -1
+        For i = rng.Cells.count To 1 Step -1
         
             If orient = "v" Then
             
                 Set thisC = rng.Cells(i, 1)
                 Set nextC = rng.Cells(i - 1, 1)
                 
-                If i < rng.Cells.Count Then
+                If i < rng.Cells.count Then
                    Set prevC = rng.Cells(i + 1, 1)
                 End If
              
@@ -258,22 +299,22 @@ Function mergeCells(Optional ByRef rng As Range, Optional ByVal orient As String
                 Set thisC = rng.Cells(1, i)
                 Set nextC = rng.Cells(1, i - 1)
              
-                If i < rng.Cells.Count Then
+                If i < rng.Cells.count Then
                    Set prevC = rng.Cells(1, i + 1)
                 End If
             End If
         
-            If i = rng.Cells.Count Then
+            If i = rng.Cells.count Then
                 Set start = thisC
-            ElseIf thisC.Value <> prevC.Value Then
+            ElseIf thisC.value <> prevC.value Then
                 Set start = thisC
             End If
                 
                 
-            If thisC.Value = nextC.Value Then
+            If thisC.value = nextC.value Then
                 If i = 1 Then
                     Set ende = thisC
-                    tmpVal = thisC.Value
+                    tmpVal = thisC.value
                     
                     With Range(start, ende)
                         .Merge
@@ -306,10 +347,10 @@ Function mergeCells(Optional ByRef rng As Range, Optional ByVal orient As String
 
 End Function
 
-Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer, Optional ByVal targValCol, Optional ByVal targRowBegine, Optional ByVal targRowEnd, Optional ByRef sht As Worksheet, Optional ByVal sorted As Boolean = False)
+Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer, Optional ByVal targValCol, Optional ByVal targRowBegine, Optional ByVal targRowEnd, Optional ByRef Sht As Worksheet, Optional ByVal sorted As Boolean = False)
     
-    If IsMissing(sht) Or TypeName(sht) = "Nothing" Then
-        Set sht = ActiveSheet
+    If IsMissing(Sht) Or TypeName(Sht) = "Nothing" Then
+        Set Sht = ActiveSheet
     End If
     
     With Application
@@ -317,13 +358,13 @@ Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer,
         .ScreenUpdating = False
     End With
     
-    With sht
+    With Sht
         If IsMissing(targRowBegine) Then
             targRowBegine = 1
         End If
         
         If IsMissing(targRowEnd) Then
-            targRowEnd = .Cells(.Rows.Count, targKeyCol2).End(xlUp).row
+            targRowEnd = .Cells(.Rows.count, targKeyCol2).End(xlUp).row
         End If
         
         If IsMissing(targValCol) Then
@@ -344,8 +385,8 @@ Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer,
             
             If sorted Then
                 With .Range(.Cells(tmpCurrentRow + 1, targKeyCol2), .Cells(tmpPreviousRow, targKeyCol2))
-                    If .Cells.Count > 1 Then
-                        .Sort Key1:=.Cells(1)
+                    If .Cells.count > 1 Then
+                        .sort Key1:=.Cells(1)
                     End If
                     .Rows.Group
                 End With
@@ -370,17 +411,17 @@ Function groupAndSum(ByVal targKeyCol1 As Integer, ByVal targKeyCol2 As Integer,
 
 End Function
 
-Function addTextBoxComment(Optional content As String, Optional ByRef sht As Worksheet)
+Function addTextBoxComment(Optional content As String, Optional ByRef Sht As Worksheet)
     
-    If IsMissing(sht) Or TypeName(sht) = "Nothing" Then
-        Set sht = ActiveSheet
+    If IsMissing(Sht) Or TypeName(Sht) = "Nothing" Then
+        Set Sht = ActiveSheet
     End If
     
     If IsMissing(content) Or content = "" Then
-        content = "Prüfungshandlung : " & Chr(9) & "Durchlesen / Neuberechnung" & Chr(13) & "Prüfungsfeststellung : " & Chr(9) & "Keine Feststellung." & String(3, Chr(13)) & "Qiou Yang / " & Format(Now, "dd.mm.yyyy")
+        content = "Prüfungshandlung : " & Chr(9) & "Durchlesen / Neuberechnung" & Chr(13) & "Prüfungsfeststellung : " & Chr(9) & "Keine Feststellung." & String(3, Chr(13)) & "Qiou Yang / " & format(Now, "dd.mm.yyyy")
     End If
     
-    With sht
+    With Sht
         With .Shapes.AddTextbox(msoTextOrientationHorizontal, 50, 50, 480, 180)
             With .TextFrame2.TextRange.Characters
                 .Text = content
@@ -396,4 +437,81 @@ Function addTextBoxComment(Optional content As String, Optional ByRef sht As Wor
         End With
     End With
 
+End Function
+
+Function dataFormat(Optional ByRef rng As Range, Optional ByVal fmtStr As String = "#,##0.00", Optional ByVal multiLines As Boolean = False) As Range
+    
+    With Application
+        .DisplayAlerts = False
+        .ScreenUpdating = False
+    End With
+    
+    If IsMissing(rng) Or TypeName(rng) = "Nothing" Then
+        Set rng = Application.intersect(ActiveSheet.UsedRange, Selection)
+    End If
+    
+    rng.NumberFormat = fmtStr
+    
+    If multiLines Then
+        rng.WrapText = True
+    End If
+    
+    With Application
+        .DisplayAlerts = True
+        .ScreenUpdating = True
+    End With
+    
+    Set dataFormat = rng
+    
+End Function
+
+Function formatAsCurrency(Optional ByRef rng As Range, Optional ByRef currencySymbol As String = "") As Range
+    Dim res As Range
+    
+    Set res = dataFormat(rng, currencySymbol & " #,##0.00")
+    res.HorizontalAlignment = xlRight
+    
+    Set formatAsCurrency = res
+    Set res = Nothing
+End Function
+
+Function formatAsCurrencyThousand(Optional ByRef rng As Range, Optional ByRef currencySymbol As String = "", Optional ByVal decimalPos As Integer = 1) As Range
+    Dim res As Range
+    
+    Set res = dataFormat(rng, currencySymbol & " #,." & String(decimalPos, "0"))
+    res.HorizontalAlignment = xlRight
+    
+    Set formatAsCurrencyThousand = res
+    Set res = Nothing
+End Function
+
+' overwrite the content if specify the year value
+Function formatAsMonatAndYear(Optional ByRef rng As Range, Optional ByVal year As Integer, Optional ByVal startMonth As Integer, Optional ByVal rowHeight As Integer) As Range
+    Dim res As Range
+    Set res = dataFormat(rng, "mmm" & Chr(10) & "yyyy", True)
+    
+    Dim e
+    Dim cnt As Integer
+    
+    If rowHeight = 0 Or IsMissing(rowHeight) Then
+        rowHeight = pRowHeightCaption
+    End If
+    
+    rng.rowHeight = rowHeight
+    rng.HorizontalAlignment = xlCenter
+    
+    If Not (IsMissing(year) Or year = 0) Then
+        
+        If startMonth = 0 Or IsMissing(startMonth) Then
+            startMonth = 1
+        End If
+    
+        For Each e In rng.Cells
+            e.value = DateSerial(year, startMonth + cnt, 1)
+            cnt = cnt + 1
+        Next e
+    End If
+
+    Set formatAsMonatAndYear = res
+    Set res = Nothing
 End Function

@@ -43,3 +43,36 @@ Private Sub demo()
     
    Next i
 End Sub
+
+
+Sub demo1_fmtReportingPackage()
+
+    Dim cnt As Integer
+    cnt = 0
+    
+    Dim a, i
+    
+    a = Array("Übersicht", "Bilanz", "GuV", "Cashflow")
+
+    Dim f As New FormatUtil
+    
+    f.setTheme FormatTheme.fmtBlue
+    
+    For Each i In a
+         Worksheets.Add after:=Worksheets(Worksheets.Count)
+         
+         With Worksheets(Worksheets.Count)
+            .Name = i
+            With .Cells(1, 2)
+                .Resize(10, 10).Value = 1
+                f.formatWithCaption rng:=.Resize(10, 10), hasFooting:=True, theme:=i, category:="Demo", index:="M3-2018/" & Format(cnt, "000")
+            End With
+         End With
+         
+         cnt = cnt + 1
+    Next i
+    
+    f.addBookmarks filterInclude:=a
+
+End Sub
+

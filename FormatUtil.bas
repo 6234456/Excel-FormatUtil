@@ -490,13 +490,14 @@ Function addBookmarks(Optional ByRef sht As Worksheet, Optional filterInclude, O
              With self
                 .ShapeStyle = msoShapeStylePreset22
                 .TextFrame2.VerticalAnchor = msoAnchorMiddle
+                .Fill.ForeColor.RGB = pBgLight
+                .Fill.Solid
                 
                  With .TextFrame2.TextRange.Characters
                     .ParagraphFormat.Alignment = msoAlignCenter
                     .Text = sht.Parent.Worksheets(cnt + 1 - i + 1).Name
                     
                     With .Font
-                        .Fill.ForeColor.ObjectThemeColor = msoThemeColorDark1
                         .Fill.Solid
                         .Size = fs
                         .Name = pFont
@@ -529,6 +530,8 @@ Function addBookmarks(Optional ByRef sht As Worksheet, Optional filterInclude, O
         .Delete
     End With
     
+    
+    
      For Each i In sht.Parent.Worksheets
         If inArray(i.Name, shtNameArr) Then
             For Each j In i.Shapes
@@ -538,8 +541,7 @@ Function addBookmarks(Optional ByRef sht As Worksheet, Optional filterInclude, O
                         If k.TextFrame2.TextRange.Characters.Text = i.Name Then
         
                             With k.Fill
-                                .ForeColor.ObjectThemeColor = msoThemeColorText2
-                                .ForeColor.Brightness = 0.6000000238
+                                .ForeColor.RGB = pBgDark
                                 .Solid
                             End With
                             
@@ -554,6 +556,25 @@ Function addBookmarks(Optional ByRef sht As Worksheet, Optional filterInclude, O
             Next j
         End If
     Next i
+End Function
+
+Public Function removeGroupShapes(Optional ByRef wb As Workbook)
+
+    Dim f1, s
+    
+    If IsMissing(wb) Or TypeName(wb) = "Nothing" Then
+        Set wb = ActiveSheet.Parent
+    End If
+    
+    
+    For Each f1 In wb.Worksheets
+        For Each s In f1.Shapes
+            If s.Type = msoGroup Then
+                s.Delete
+            End If
+        Next s
+    Next f1
+
 End Function
 
 Private Function inArray(f, ByRef arr) As Boolean

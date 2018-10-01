@@ -439,9 +439,11 @@ Function addTextBoxComment(Optional content As String, Optional ByRef sht As Wor
 
 End Function
 
-Function addBookmarks(Optional filterInclude, Optional filterExclude)
-    Dim sht As Worksheet
-    Set sht = ActiveSheet
+Function addBookmarks(Optional ByRef sht As Worksheet, Optional filterInclude, Optional filterExclude)
+    
+    If IsMissing(sht) Or TypeName(sht) = "Nothing" Then
+        Set sht = ActiveSheet
+    End If
     
     Dim w As Long
     Dim m As Long

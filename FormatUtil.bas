@@ -439,7 +439,7 @@ Function addTextBoxComment(Optional content As String, Optional ByRef sht As Wor
 
 End Function
 
-Function addBookmarks()
+Function addBookmarks(Optional filterInclude, Optional filterExclude)
     Dim sht As Worksheet
     Set sht = ActiveSheet
     
@@ -463,28 +463,51 @@ Function addBookmarks()
     
     Dim i
     
+    Dim shtNameArr()
+    ReDim shtNameArr(0 To cnt)
+    
+    For i = 0 To cnt
+        shtNameArr(i) = sht.Parent.Worksheets(i + 1).Name
+    Next i
+    
+    
+    If Not IsMissing(filterInclude) Then
+        shtNameArr = filterArrayWith(shtNameArr, filterInclude, False)
+    End If
+    
+    If Not IsMissing(filterExclude) Then
+        shtNameArr = filterArrayWith(shtNameArr, filterExclude, True)
+    End If
+    
+    Dim cnt1 As Long
+    cnt1 = 0
+    
     For i = 1 To cnt + 1
-        Set self = sht.Shapes.AddShape(msoShapeRound2SameRectangle, (i - 1) * (w + m), 0, w, h)
-         With self
-            .ShapeStyle = msoShapeStylePreset22
-            .TextFrame2.VerticalAnchor = msoAnchorMiddle
-            
-             With .TextFrame2.TextRange.Characters
-                .ParagraphFormat.Alignment = msoAlignCenter
-                .Text = sht.Parent.Worksheets(i).Name
+        If inArray(sht.Parent.Worksheets(cnt + 1 - i + 1).Name, shtNameArr) Then
+            Set self = sht.Shapes.AddShape(msoShapeRound2SameRectangle, cnt1 * (w + m), 0, w, h)
+             With self
+                .ShapeStyle = msoShapeStylePreset22
+                .TextFrame2.VerticalAnchor = msoAnchorMiddle
                 
-                With .Font
-                    .Fill.ForeColor.ObjectThemeColor = msoThemeColorDark1
-                    .Fill.Solid
-                    .Size = fs
-                    .Name = pFont
-                End With
-             End With
-             
-             sht.Hyperlinks.Add Anchor:=self, Address:="", SubAddress:="'" & sht.Parent.Worksheets(i).Name & "'" & "!A1"
-             
-             arr(i - 1) = .Name
-        End With
+                 With .TextFrame2.TextRange.Characters
+                    .ParagraphFormat.Alignment = msoAlignCenter
+                    .Text = sht.Parent.Worksheets(cnt + 1 - i + 1).Name
+                    
+                    With .Font
+                        .Fill.ForeColor.ObjectThemeColor = msoThemeColorDark1
+                        .Fill.Solid
+                        .Size = fs
+                        .Name = pFont
+                    End With
+                 End With
+                 
+                 sht.Hyperlinks.Add Anchor:=self, Address:="", SubAddress:="'" & sht.Parent.Worksheets(cnt + 1 - i + 1).Name & "'" & "!B1"
+                 
+                 arr(i - 1) = .Name
+            End With
+            
+            cnt1 = cnt1 + 1
+        End If
     Next i
     
     Dim j, k
@@ -495,37 +518,95 @@ Function addBookmarks()
         .Left = 0
         
         For Each i In sht.Parent.Worksheets
-            .Copy
-            i.Paste i.Cells(1, 1)
+            If inArray(i.Name, shtNameArr) Then
+                .Copy
+                i.Paste i.Cells(1, 1)
+            End If
         Next i
         
         .Delete
     End With
     
      For Each i In sht.Parent.Worksheets
-        For Each j In i.Shapes
-            If j.Type = msoGroup Then
-                For Each k In j.GroupItems
-                    ' if there are multiple group objects might be error.
-                    If k.TextFrame2.TextRange.Characters.Text = i.Name Then
+        If inArray(i.Name, shtNameArr) Then
+            For Each j In i.Shapes
+                If j.Type = msoGroup Then
+                    For Each k In j.GroupItems
+                        ' if there are multiple group objects might be error.
+                        If k.TextFrame2.TextRange.Characters.Text = i.Name Then
+        
+                            With k.Fill
+                                .ForeColor.ObjectThemeColor = msoThemeColorText2
+                                .ForeColor.Brightness = 0.6000000238
+                                .Solid
+                            End With
+                            
+                            
+                             With k.TextFrame2.TextRange.Characters.Font.Fill
+                                .ForeColor.ObjectThemeColor = msoThemeColorBackground1
+                            End With
     
-                        With k.Fill
-                            .ForeColor.ObjectThemeColor = msoThemeColorText2
-                            .ForeColor.Brightness = 0.6000000238
-                            .Solid
-                        End With
-                        
-                        
-                         With k.TextFrame2.TextRange.Characters.Font.Fill
-                            .ForeColor.ObjectThemeColor = msoThemeColorBackground1
-                        End With
-
-                    End If
-                Next k
-            End If
-        Next j
+                        End If
+                    Next k
+                End If
+            Next j
+        End If
     Next i
 End Function
+
+Private Function inArray(f, ByRef arr) As Boolean
+    Dim res As Boolean
+    Dim e
+    
+    res = False
+    
+    For Each e In arr
+        If e = f Then
+            res = True
+            Exit For
+        End If
+    Next e
+    
+    inArray = res
+End Function
+
+Function filterArrayWith(ByRef arr, Optional f, Optional ByVal exclude As Boolean = False) As Variant
+        Dim res()
+        ReDim res(LBound(arr) To UBound(arr))
+        
+        Dim cnt As Long
+        cnt = LBound(arr)
+        
+        Dim i
+        
+        If TypeName(f) = "IRegExp2" Then
+            For Each i In arr
+                If f.test(i) = Not exclude Then
+                    res(cnt) = i
+                    cnt = cnt + 1
+                End If
+            Next i
+        ElseIf IsArray(f) Then
+            For Each i In arr
+                If inArray(i, f) = Not exclude Then
+                    res(cnt) = i
+                    cnt = cnt + 1
+                End If
+            Next i
+        Else
+            Err.Raise 9987, , "Unkown ParameterType filterInclude: Should be either RegExp or Array"
+        End If
+        
+        If cnt > LBound(arr) Then
+            ReDim Preserve res(LBound(arr) To cnt - 1)
+            filterArrayWith = res
+        Else
+            filterArrayWith = Array()
+        End If
+    
+End Function
+
+
 
 Function dataFormat(Optional ByRef rng As Range, Optional ByVal fmtStr As String = "#,##0.00", Optional ByVal multiLines As Boolean = False) As Range
     

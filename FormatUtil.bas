@@ -2,8 +2,8 @@
 '@desc                                     Util Class FormatUtil
 '                                          to implement the format uniformly
 '@author                                   Qiou Yang
-'@lastUpdate                               01.10.2018
-'                                          add bookmarks
+'@lastUpdate                               09.10.2018
+'                                          add logo
 '@TODO                                     add getter and setter
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
@@ -21,12 +21,20 @@ Dim pBlankRowsUnterCaption As Integer
 Dim pBgDark As Long
 Dim pBgLight As Long
 
+Dim pLogoHTTP As String
+Dim pDx As Double
+Dim pDy As Double
+Dim pPreferredLogoHeight As Double
+
 Public Enum FormatTheme
     fmtBlue = 0
     fmtLightGreen = 1
     fmtOrange = 2
     fmtSkyBlue = 3
     fmtBlackWhite = 4
+    fmtLavanda = 5
+    fmtRose = 6
+    fmtBlood = 7
 End Enum
 
 Private Sub Class_Initialize()
@@ -41,6 +49,13 @@ Private Sub Class_Initialize()
     
     pBgDark = 11892015
     pBgLight = 16247773
+    
+    pLogoHTTP = "https://upload.wikimedia.org/wikipedia/en/9/9c/BDO_logo.svg"
+    ' offset of the logo
+    pDx = 5
+    pDy = 6.75
+    
+    pPreferredLogoHeight = 24
 End Sub
 
 Function setTheme(Optional ByVal theme As Integer = FormatTheme.fmtLightGreen)
@@ -59,6 +74,15 @@ Function setTheme(Optional ByVal theme As Integer = FormatTheme.fmtLightGreen)
     ElseIf theme = FormatTheme.fmtBlackWhite Then
         pBgDark = 7434613
         pBgLight = 14277081
+    ElseIf theme = FormatTheme.fmtLavanda Then
+        pBgDark = 10498160
+        pBgLight = 16306927
+    ElseIf theme = FormatTheme.fmtRose Then
+        pBgDark = 11615729
+        pBgLight = 16567550
+    ElseIf theme = FormatTheme.fmtBlood Then
+        pBgDark = 3620091
+        pBgLight = 9147389
     Else
         Err.Raise 9970, , "ParameterException: Unknown Theme: " & theme
     End If
@@ -250,6 +274,69 @@ Function addCaption(Optional ByRef rng As Range, Optional ByVal category As Stri
     
     Set addCaption = rng
     
+End Function
+
+
+' set logoFileInternet to "null" will directly look in the local directory
+' svg format is preferred, the local directory is relative to the macro-workbook, by default in the same fold as the macro-file
+' scl is the preferred height of the logo
+' dx/dy is the offset to the top left corner of the cell
+Function addLogo(Optional ByRef rng As Range, Optional ByVal logoFile As String = "logo.svg", Optional ByVal logoFileInternet As String, Optional ByVal scl As Double, Optional ByVal dx As Double, Optional ByVal dy As Double)
+    
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    Dim s As String
+    
+    
+    If IsMissing(logoFileInternet) Or logoFileInternet = "" Then
+        logoFileInternet = pLogoHTTP
+    End If
+    
+    If IsMissing(scl) Or scl = 0 Then
+        scl = pPreferredLogoHeight
+    End If
+    
+    If IsMissing(dx) Or dx = 0 Then
+        dx = pDx
+    End If
+    
+    If IsMissing(dy) Or dy = 0 Then
+        dy = pDy
+    End If
+    
+    If fso.fileexists(ThisWorkbook.Path & "\" & logoFile) Then
+        s = ThisWorkbook.Path & "\" & logoFile
+    ElseIf Len(logoFileInternet) > 0 And logoFileInternet <> "null" Then
+        s = logoFileInternet
+    Else
+        With Application.FileDialog(msoFileDialogFilePicker)
+            .AllowMultiSelect = False
+            
+            .Title = "Please select the file."
+            .Filters.Clear
+            .Filters.Add "JPG", "*.jpg?"
+            .Filters.Add "JPEG", "*.jpeg?"
+            .Filters.Add "PNG", "*.png?"
+            .Filters.Add "SVG", "*.svg?"
+        
+            If .Show = True Then
+              s = Dir(.SelectedItems(1))
+            End If
+        End With
+    End If
+    
+    
+    With rng.Worksheet.Pictures.Insert(s)
+        .ShapeRange.ScaleWidth scl / .Height, msoFalse, msoScaleFromTopLeft
+        .ShapeRange.ScaleHeight scl / .Height, msoFalse, msoScaleFromTopLeft
+        
+        .Top = rng.Top + dy
+        .Left = rng.Left + dx
+    End With
+    
+    Set fso = Nothing
+
 End Function
 
 Function formatWithCaption(Optional ByRef rng As Range, Optional hasHeading As Boolean = True, Optional hasFooting As Boolean = False, Optional keepOldFormat As Boolean = False, Optional bgDark As Long, Optional bgLight As Long, Optional ByVal category As String = "Arbeitspapier", Optional ByVal theme As String = "Demo", Optional ByVal index As String = "M3-2018/001", Optional ByVal author As String = "Qiou Yang") As Range

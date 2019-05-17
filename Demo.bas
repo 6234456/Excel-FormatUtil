@@ -1,3 +1,41 @@
+Sub framedRoundCorneredRect()
+
+    With ActiveSheet.Shapes.AddShape(msoShapeRoundedRectangle, 1, 1, 120, 42)
+        With .Fill
+            .ForeColor.ObjectThemeColor = msoThemeColorAccent4
+            .ForeColor.Brightness = 0.6000000238
+        End With
+
+        With .Line
+            .Visible = msoFalse
+            .ForeColor.ObjectThemeColor = msoThemeColorBackground1
+            .Weight = 4.5
+        End With
+
+        With .ThreeD
+            .SetPresetCamera (msoCameraOrthographicFront)
+            .PresetLighting = msoLightRigSoft
+            .PresetMaterial = msoMaterialMatte2
+            .Depth = 0
+            .ContourWidth = 3.5
+            .ContourColor.RGB = RGB(255, 255, 255)
+            .BevelTopType = msoBevelArtDeco
+            .BevelTopInset = 5
+            .BevelTopDepth = 5
+        End With
+        
+       With .Shadow
+            .Type = msoShadow25
+            .Style = msoShadowStyleOuterShadow
+            .Blur = 8.5
+            .OffsetX = 6.1232339957E-17
+            .OffsetY = 1
+            .Size = 100
+        End With
+    End With
+    
+End Sub
+
 Sub trail()
 
     Dim f As New FormatUtil
